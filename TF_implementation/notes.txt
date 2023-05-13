@@ -1,0 +1,1 @@
+the spectral cyclegan implementation uses the npy files generated using the dataset parsing notebook in the home directory of this repo
