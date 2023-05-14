@@ -9,3 +9,4 @@ The numpy files `noisy_data.npy` and `denoised_data.npy` can be downloaded from 
 - Implement cycleGAN in pytorch (MA)
 - Clean/comment tf cycleGAN implementation (CB)
 - Train a supervised net for comparison
+- Denoising but for images ?
