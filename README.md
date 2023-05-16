@@ -14,5 +14,5 @@ Misc
 
 # ClirPATH to do
 - ask around for a relevant conference to attend
-- perhaps find a compelling clinical use-case for our denoising algo...
+- perhaps find a compelling clinical use-case for our denoising algo... apply for project funding if indeed we work something out
 - discuss suitable journals to submit to if it all goes well
