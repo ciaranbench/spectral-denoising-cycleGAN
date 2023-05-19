@@ -17,7 +17,3 @@ Misc
 - perhaps find a compelling clinical use-case for our denoising algo... apply for project funding if indeed we work something out
 - discuss suitable journals to submit to if it all goes well
 
-# to do (night)
-- clean parsing notebook
-- have network evaluate on all test data
-- run eval metrics agains
