@@ -4,7 +4,7 @@ The numpy files `noisy_data.npy` and `denoised_data.npy` can be downloaded from 
 
 # TO DO:
 - Have eval notebook loop over loads of parameters and save results/spectra in npy
-- Formulate a completely unsupervised stopping criteria. Visual inspection seems weak. Perhaps the k-means comparison is good!
+- Formulate a completely unsupervised stopping criteria. Visual inspection seems weak. Perhaps the k-means comparison is good!sklearn.metrics.adjusted_rand_score
 - Code/train denoisining autoencoder - relevant paper should be in the project overleaf. \cite{abdolghader2021unsupervised} perhaps do single sample and multi sample version. Add this to eval notebook
 - Implement cycleGAN in pytorch (MA)
 - compare k means with fixed group size on clean, noisy, and adapted spectra as an eval metric (add to eval notebook)
