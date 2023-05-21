@@ -17,3 +17,6 @@ Misc
 - perhaps find a compelling clinical use-case for our denoising algo... apply for project funding if indeed we work something out
 - discuss suitable journals to submit to if it all goes well
 
+
+# Important notes
+- Indeed, our method is unsupervised, but the network will still see the of the same sorts of samples in both domains. It just isn't directly paired. 
