@@ -10,8 +10,8 @@ The numpy files `noisy_data.npy` and `denoised_data.npy` can be downloaded from 
 
 # ClirPATH to do
 - ask around for a relevant conference to attend
-- Propose application to get funcing for webapp
-- perhaps find a compelling clinical use-case for our denoising algo... apply for project funding if indeed we work something out
+- Propose application to get funding for webapp
+- perhaps find a compelling clinical use-case for our denoising algo... apply for project funding if indeed we work something out (though now this seems less appealing than the above)
 - discuss suitable journals to submit to if it all goes well
 
 
