@@ -7,6 +7,7 @@ The numpy files `noisy_data.npy` and `denoised_data.npy` can be downloaded from 
 - Implement cycleGAN in pytorch (MA)
 - compare k means with fixed group size on clean, noisy, and adapted spectra as an eval metric (add to eval notebook)
 - Train a supervised net for comparison ?
+- Find some correlation metric to demonstrate that our unsupervised stopping criteria matches the supervised validation loss well. 
 
 # ClirPATH to do
 - ask around for a relevant conference to attend
