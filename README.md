@@ -9,4 +9,4 @@ The original spectral dataset adapted for this study can be found [here](https:/
 - last adjustments to figures
 - check refs
 - add new ref
-
+- add pearsons score in text
