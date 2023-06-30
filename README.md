@@ -10,3 +10,4 @@ The original spectral dataset adapted for this study can be found [here](https:/
 - check refs
 - add new ref
 - add pearsons score in text
+- check why vmse << tmse
