@@ -5,5 +5,4 @@ Training/validation/test data can be downloaded from this [Google Drive link](ht
 The original spectral dataset adapted for this study can be found [here](https://github.com/conor-horgan/DeepeR). 
 # to do:
 
-- check refs
 - compute validation loss for an epoch using baseline corrected/normalised spectra
