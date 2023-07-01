@@ -8,7 +8,6 @@ The original spectral dataset adapted for this study can be found [here](https:/
 - cite original cyclegan paper
 - last adjustments to figures
 - check refs
-- add new ref
 - add pearsons score in text
 - compute validation loss for an epoch using baseline corrected/normalised spectra
 - mention why baseline corrected spectra are used for test comparison
