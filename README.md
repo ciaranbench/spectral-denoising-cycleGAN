@@ -6,7 +6,6 @@ The original spectral dataset adapted for this study can be found [here](https:/
 # to do:
 
 - check refs
-- add pearsons score in text
 - compute validation loss for an epoch using baseline corrected/normalised spectra
 - mention why baseline corrected spectra are used for test comparison
 - add error metrics for non-baseline corrected spectra?
