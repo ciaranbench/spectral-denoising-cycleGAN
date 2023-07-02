@@ -1,4 +1,4 @@
-# Spectral Denoising CycleGAN
+# Raman Spectral Denoising CycleGAN
 
 This is the code repository for:
 
