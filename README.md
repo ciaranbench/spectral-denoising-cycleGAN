@@ -11,4 +11,4 @@ The original spectral dataset adapted for this study can be found [here](https:/
 
 Training scripts were written for TensorFlow 2.12
 
-notes:concat=add
+notes:concat=add, image adapt=c.o.d. i.e. infeasible
