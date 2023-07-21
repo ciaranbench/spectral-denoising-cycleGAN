@@ -10,5 +10,3 @@ Training/validation/test data can be downloaded from this [Google Drive link](ht
 The original spectral dataset adapted for this study can be found [here](https://github.com/conor-horgan/DeepeR). 
 
 Training scripts were written for TensorFlow 2.12
-
-td: update figs, add cell img to readme
