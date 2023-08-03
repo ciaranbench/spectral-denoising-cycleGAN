@@ -41,7 +41,7 @@ params = {
     'lambdaB':10  ,  #lambdaB for cycle loss
 }
 
-data_dir = './vangogh2photo'
+data_dir = './data'
 def to_np(x):
     return x.data.cpu().numpy()
 def plot_train_result(real_image, gen_image, recon_image, epoch, save=False,  show=True, fig_size=(15, 15)):
@@ -53,8 +53,8 @@ def plot_train_result(real_image, gen_image, recon_image, epoch, save=False,  sh
         #ax.set_adjustable('box-forced')
         # Scale to 0-255
         img = img.squeeze()
-        img = (((img - img.min()) * 255) / (img.max() - img.min())).transpose(1, 2, 0).astype(np.uint8)
-        ax.imshow(img, cmap=None, aspect='equal')
+        #img = (((img - img.min()) * 255) / (img.max() - img.min())).transpose(1, 2, 0).astype(np.uint8)
+        ax.plot(img)
     plt.subplots_adjust(wspace=0, hspace=0)
 
     title = 'Epoch {0}'.format(epoch + 1)
@@ -277,30 +277,66 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
-train_data_A = DatasetFromFolder(data_dir, subfolder='trainA', transform=transform,
-                                resize_scale=params['resize_scale'], crop_size=params['crop_size'], fliplr=params['fliplr'])
-train_data_loader_A = torch.utils.data.DataLoader(dataset=train_data_A, batch_size=params['batch_size'], shuffle=True)
-train_data_B = DatasetFromFolder(data_dir, subfolder='trainB', transform=transform,
-                                resize_scale=params['resize_scale'], crop_size=params['crop_size'], fliplr=params['fliplr'])
-train_data_loader_B = torch.utils.data.DataLoader(dataset=train_data_B, batch_size=params['batch_size'], shuffle=True)
-#Load test data
-test_data_A = DatasetFromFolder(data_dir, subfolder='testA', transform=transform)
-test_data_loader_A = torch.utils.data.DataLoader(dataset=test_data_A, batch_size=params['batch_size'], shuffle=False)
-test_data_B = DatasetFromFolder(data_dir, subfolder='testB', transform=transform)
-test_data_loader_B = torch.utils.data.DataLoader(dataset=test_data_B, batch_size=params['batch_size'], shuffle=False)
 
+
+#train_data_A = DatasetFromFolder(data_dir, subfolder='trainA', transform=transform,
+#                                resize_scale=params['resize_scale'], crop_size=params['crop_size'], fliplr=params['fliplr'])
+#train_data_loader_A = torch.utils.data.DataLoader(dataset=train_data_A, batch_size=params['batch_size'], shuffle=True)
+#train_data_B = DatasetFromFolder(data_dir, subfolder='trainB', transform=transform,
+#                                resize_scale=params['resize_scale'], crop_size=params['crop_size'], fliplr=params['fliplr'])
+#train_data_loader_B = torch.utils.data.DataLoader(dataset=train_data_B, batch_size=params['batch_size'], shuffle=True)
+#Load test data#
+#test_data_A = DatasetFromFolder(data_dir, subfolder='testA', transform=transform)
+#test_data_loader_A = torch.utils.data.DataLoader(dataset=test_data_A, batch_size=params['batch_size'], shuffle=False)
+#test_data_B = DatasetFromFolder(data_dir, subfolder='testB', transform=transform)
+#test_data_loader_B = torch.utils.data.DataLoader(dataset=test_data_B, batch_size=params['batch_size'], shuffle=False)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# Get specific test images
-test_real_A_data = train_data_A.__getitem__(11).unsqueeze(0) # Convert to 4d tensor (BxNxHxW)
-test_real_B_data = train_data_B.__getitem__(91).unsqueeze(0)
-#print(test_real_A_data)
-#Build Model 
-G_A = Generator(3, params['ngf'], 3, params['num_resnet']).cuda() # input_dim, num_filter, output_dim, num_resnet
-G_B = Generator(3, params['ngf'], 3, params['num_resnet']).cuda()
 
-D_A = Discriminator(3, params['ndf'], 1).cuda() # input_dim, num_filter, output_dim
-D_B = Discriminator(3, params['ndf'], 1).cuda()
+
+noisy_tr = np.load('data/hn_train_set.npy')
+clean_tr = np.load('data/ln_train_set.npy')
+noisy_va = np.load('data/hn_valid_set.npy')
+clean_va = np.load('data/ln_valid_set.npy')
+
+noisy_va_sup = np.load('data/hn_valid_set_sup.npy')
+clean_va_sup = np.load('data/ln_valid_set_sup.npy')
+
+noisy_te = np.load('data/hn_test_set.npy')
+clean_te = np.load('data/ln_test_set.npy')
+
+noisy_tr = torch.from_numpy(noisy_tr).float().to(device)
+clean_tr = torch.from_numpy(clean_tr).float().to(device)
+noisy_va = torch.from_numpy(noisy_va).float().to(device)
+clean_va = torch.from_numpy(clean_va).float().to(device)
+
+train_data_A = data.TensorDataset(noisy_tr)
+train_data_B = data.TensorDataset(clean_tr)
+
+
+train_data_loader_A = torch.utils.data.DataLoader(dataset=train_data_A, batch_size=params['batch_size'], shuffle=False)
+train_data_loader_B = torch.utils.data.DataLoader(dataset=train_data_B, batch_size=params['batch_size'], shuffle=False)
+
+
+
+#Load test data#
+test_data_A = data.TensorDataset(noisy_va)
+test_data_B = data.TensorDataset(clean_va)
+
+test_data_loader_A = torch.utils.data.DataLoader(dataset=test_data_A, batch_size=params['batch_size'], shuffle=False)
+test_data_loader_B = torch.utils.data.DataLoader(dataset=test_data_B, batch_size=params['batch_size'], shuffle=False)
+
+
+# Get specific test images
+test_real_A_data = train_data_A.__getitem__(11)#.unsqueeze(0) # Convert to 4d tensor (BxNxHxW)
+test_real_B_data = train_data_B.__getitem__(91)#.unsqueeze(0)
+#print((test_real_A_data))
+#Build Model 
+G_A = Generator(1, params['ngf'], 1, params['num_resnet']).cuda() # input_dim, num_filter, output_dim, num_resnet
+G_B = Generator(1, params['ngf'], 1, params['num_resnet']).cuda()
+
+D_A = Discriminator(1, params['ndf'], 1).cuda() # input_dim, num_filter, output_dim
+D_B = Discriminator(1, params['ndf'], 1).cuda()
 
 G_A.normal_weight_init(mean=0.0, std=0.02)
 G_B.normal_weight_init(mean=0.0, std=0.02)
@@ -346,10 +382,11 @@ for epoch in range(params['num_epochs']):
     
     # training 
     for i, (real_A, real_B) in enumerate(zip(train_data_loader_A, train_data_loader_B)):
-        
+
+        #print(real_A[0])
         # input image data
-        real_A = real_A.to(device)
-        real_B = real_B.to(device)
+        real_A = real_A[0].to(device)
+        real_B = real_B[0].to(device)
         
         # -------------------------- train generator G --------------------------
         # A --> B
