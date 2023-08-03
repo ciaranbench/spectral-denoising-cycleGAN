@@ -22,7 +22,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':1,
+    'batch_size':100,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -304,11 +304,11 @@ clean_va_sup = np.load('data/ln_valid_set_sup.npy')
 
 noisy_te = np.load('data/hn_test_set.npy')
 clean_te = np.load('data/ln_test_set.npy')
-
-noisy_tr = torch.from_numpy(noisy_tr).float().to(device)
-clean_tr = torch.from_numpy(clean_tr).float().to(device)
-noisy_va = torch.from_numpy(noisy_va).float().to(device)
-clean_va = torch.from_numpy(clean_va).float().to(device)
+#add dimension to ensure tensor will be shaped as [batch, channel, length]
+noisy_tr = torch.from_numpy(np.expand_dims(noisy_tr,axis=1)).float().to(device)
+clean_tr = torch.from_numpy(np.expand_dims(clean_tr,axis=1)).float().to(device)
+noisy_va = torch.from_numpy(np.expand_dims(noisy_va,axis=1)).float().to(device)
+clean_va = torch.from_numpy(np.expand_dims(clean_va,axis=1)).float().to(device)
 
 train_data_A = data.TensorDataset(noisy_tr)
 train_data_B = data.TensorDataset(clean_tr)
@@ -387,6 +387,7 @@ for epoch in range(params['num_epochs']):
         # input image data
         real_A = real_A[0].to(device)
         real_B = real_B[0].to(device)
+        #print(real_A.size())
         
         # -------------------------- train generator G --------------------------
         # A --> B
