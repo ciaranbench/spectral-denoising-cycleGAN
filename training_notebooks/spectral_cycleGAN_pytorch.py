@@ -476,15 +476,16 @@ for epoch in range(params['num_epochs']):
     cycle_B_avg_losses.append(cycle_B_avg_loss.item())
     
     # Show result for test image
-    test_real_A = test_real_A_data.cuda()
-    test_fake_B = G_A(test_real_A)
+    test_real_A = test_real_A_data
+    print(test_real_A_data)
+    test_fake_B = G_A(test_real_A[0])
     test_recon_A = G_B(test_fake_B)
 
-    test_real_B = test_real_B_data.cuda()
-    test_fake_A = G_B(test_real_B)
+    test_real_B = test_real_B_data
+    test_fake_A = G_B(test_real_B[0])
     test_recon_B = G_A(test_fake_A)
 
-    plot_train_result([test_real_A, test_real_B], [test_fake_B, test_fake_A], [test_recon_A, test_recon_B],
+    plot_train_result([test_real_A[0], test_real_B[0]], [test_fake_B, test_fake_A], [test_recon_A, test_recon_B],
                             epoch, save=True)
     PATH = './model_G_A_' + str(epoch)
     torch.save(G_A.state_dict(), PATH)
