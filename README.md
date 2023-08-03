@@ -10,3 +10,5 @@ Training/validation/test data can be downloaded from this [Google Drive link](ht
 The original spectral dataset adapted for this study can be found [here](https://github.com/conor-horgan/DeepeR). 
 
 Training scripts were written for TensorFlow 2.12
+
+to do: pytorch implementation -> https://www.kaggle.com/code/pipiking/cyclegan-pytorch/script
