@@ -377,6 +377,8 @@ D_B.normal_weight_init(mean=0.0, std=0.02)
 
 
 G_optimizer = torch.optim.Adam(itertools.chain(G_A.parameters(), G_B.parameters()), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+G_A_optimizer = torch.optim.Adam(G_A.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+G_B_optimizer = torch.optim.Adam(G_B.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
 D_A_optimizer = torch.optim.Adam(D_A.parameters(), lr=params['lrD'], betas=(params['beta1'], params['beta2']))
 D_B_optimizer = torch.optim.Adam(D_B.parameters(), lr=params['lrD'], betas=(params['beta1'], params['beta2']))
 
@@ -394,7 +396,7 @@ id_A_avg_losses = []
 id_B_avg_losses = []
 
 # Generated image pool
-num_pool = 50
+num_pool = 5
 fake_A_pool = ImagePool(num_pool)
 fake_B_pool = ImagePool(num_pool)
 
@@ -453,16 +455,26 @@ for epoch in range(params['num_epochs']):
         
         # Back propagation
         G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
-        G_optimizer.zero_grad()
-        G_loss.backward()
-        G_optimizer.step()
+        #G_optimizer.zero_grad()
+        #G_loss.backward()
+        #G_optimizer.step()
+        
+        G_A_loss = G_A_loss + cycle_A_loss +  id_A_loss
+        G_A_optimizer.zero_grad()
+        G_A_loss.backward(retain_graph=True)
+        G_A_optimizer.step()
+        
+        G_B_loss = G_B_loss + cycle_B_loss +  id_B_loss
+        G_B_optimizer.zero_grad()
+        G_B_loss.backward(retain_graph=True)
+        G_B_optimizer.step()
         
         
         # -------------------------- train discriminator D_A --------------------------
         D_A_real_decision = D_A(real_A)
         D_A_real_loss = MSE_Loss(D_A_real_decision, Variable(torch.ones(D_A_real_decision.size()).cuda()))
         
-        fake_A = fake_A_pool.query(fake_A)
+        #fake_A = fake_A_pool.query(fake_A)
         
         D_A_fake_decision = D_A(fake_A)
         D_A_fake_loss = MSE_Loss(D_A_fake_decision, Variable(torch.zeros(D_A_fake_decision.size()).cuda()))
@@ -477,7 +489,7 @@ for epoch in range(params['num_epochs']):
         D_B_real_decision = D_B(real_B)
         D_B_real_loss = MSE_Loss(D_B_real_decision, Variable(torch.ones(D_B_fake_decision.size()).cuda()))
         
-        fake_B = fake_B_pool.query(fake_B)
+        #fake_B = fake_B_pool.query(fake_B)
         
         D_B_fake_decision = D_B(fake_B)
         D_B_fake_loss = MSE_Loss(D_B_fake_decision, Variable(torch.zeros(D_B_fake_decision.size()).cuda()))
