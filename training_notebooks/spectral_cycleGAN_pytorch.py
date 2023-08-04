@@ -45,12 +45,14 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':1e-7,    #learning rate for generator
-    'lrD':1e-7,    #learning rate for discriminator
+    'lrG':1e-6,    #learning rate for generator
+    'lrD':1e-6,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
     'lambdaB':10  ,  #lambdaB for cycle loss
+    'lambdaidA':5 ,
+    'lambdaidB':5 ,
 }
 
 data_dir = './data'
@@ -81,71 +83,6 @@ def plot_train_result(real_image, gen_image, recon_image, epoch, save=False,  sh
         plt.show()
     else:
         plt.close()
-
-class ImagePool():
-    def __init__(self, pool_size):
-        self.pool_size = pool_size
-        if self.pool_size > 0:
-            self.num_imgs = 0
-            self.images = []
-
-    def query(self, images):
-        if self.pool_size == 0:
-            return images
-        return_images = []
-        for image in images.data:
-            image = torch.unsqueeze(image, 0)
-            if self.num_imgs < self.pool_size:
-                self.num_imgs = self.num_imgs + 1
-                self.images.append(image)
-                return_images.append(image)
-            else:
-                p = random.uniform(0, 1)
-                if p > 0.5:
-                    random_id = random.randint(0, self.pool_size-1)
-                    tmp = self.images[random_id].clone()
-                    self.images[random_id] = image
-                    return_images.append(tmp)
-                else:
-                    return_images.append(image)
-        return_images = Variable(torch.cat(return_images, 0))
-        return return_images
-        
-class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, subfolder='train', transform=None, resize_scale=None, crop_size=None, fliplr=False):
-        super(DatasetFromFolder, self).__init__()
-        self.input_path = os.path.join(image_dir, subfolder)
-        self.image_filenames = [x for x in sorted(os.listdir(self.input_path))]
-        self.transform = transform
-        
-        self.resize_scale = resize_scale
-        self.crop_size = crop_size
-        self.fliplr = fliplr
-
-    def __getitem__(self, index):
-        # Load Image
-        img_fn = os.path.join(self.input_path, self.image_filenames[index])
-        img = Image.open(img_fn).convert('RGB')
-
-        # preprocessing
-        if self.resize_scale:
-            img = img.resize((self.resize_scale, self.resize_scale), Image.BILINEAR)
-
-        if self.crop_size:
-            x = random.randint(0, self.resize_scale - self.crop_size + 1)
-            y = random.randint(0, self.resize_scale - self.crop_size + 1)
-            img = img.crop((x, y, x + self.crop_size, y + self.crop_size))
-        if self.fliplr:
-            if random.random() < 0.5:
-                img = img.transpose(Image.FLIP_LEFT_RIGHT)
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        return img
-
-    def __len__(self):
-        return len(self.image_filenames)
 
 
 class ConvBlock(torch.nn.Module):
@@ -202,7 +139,7 @@ class ResnetBlock(torch.nn.Module):
         conv2 = torch.nn.Conv1d(num_filter,num_filter,kernel_size,stride,padding)
         bn = torch.nn.InstanceNorm1d(num_filter)
         relu = torch.nn.ReLU(True)
-        pad = torch.nn.ReflectionPad1d(1)
+        pad = torch.nn.ConstantPad1d(1,0)#torch.nn.ReflectionPad1d(1)
         
         self.resnet_block = torch.nn.Sequential(
             pad,
@@ -222,7 +159,7 @@ class Generator(torch.nn.Module):
         super(Generator,self).__init__()
         
         #Reflection padding
-        self.pad = torch.nn.ReflectionPad1d(3)
+        self.pad = torch.nn.ConstantPad1d(3,0)#torch.nn.ReflectionPad1d(3)
         #Encoder
         self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0,batch_norm=False)
         self.conv2 = ConvBlock(num_filter,num_filter*2,batch_norm=False)
@@ -432,26 +369,26 @@ for epoch in range(params['num_epochs']):
         # A --> B
         fake_B = G_A(real_A)
         D_B_fake_decision = D_B(fake_B)
-        G_A_loss = MSE_Loss(D_B_fake_decision, Variable(torch.ones(D_B_fake_decision.size()).cuda()))
+        G_Aadv_loss = MSE_Loss(D_B_fake_decision, Variable(torch.ones(D_B_fake_decision.size()).cuda()))
         
         # forward cycle loss
         recon_A = G_B(fake_B)
         cycle_A_loss = L1_Loss(recon_A, real_A) * params['lambdaA']
         #ID loss
         id_A = G_B(real_A)
-        id_A_loss = L1_Loss(id_A, real_A) * 5
+        id_A_loss = L1_Loss(id_A, real_A) * params['lambdaidA']
         
         # B --> A
         fake_A = G_B(real_B)
         D_A_fake_decision = D_A(fake_A)
-        G_B_loss = MSE_Loss(D_A_fake_decision, Variable(torch.ones(D_A_fake_decision.size()).cuda()))
+        G_Badv_loss = MSE_Loss(D_A_fake_decision, Variable(torch.ones(D_A_fake_decision.size()).cuda()))
         
         # backward cycle loss
         recon_B = G_A(fake_A)
         cycle_B_loss = L1_Loss(recon_B, real_B) * params['lambdaB']
         ##Id Loss
         id_B = G_A(real_B)
-        id_B_loss = L1_Loss(id_B, real_B) * 5
+        id_B_loss = L1_Loss(id_B, real_B) * params['lambdaidB']
         
         # Back propagation
         #G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
@@ -459,8 +396,8 @@ for epoch in range(params['num_epochs']):
         #G_loss.backward()
         #G_optimizer.step()
         
-        G_A_loss = G_A_loss + cycle_A_loss +  id_A_loss
-        G_B_loss = G_B_loss + cycle_B_loss +  id_B_loss
+        G_A_loss = G_Aadv_loss + cycle_A_loss +  id_A_loss
+        G_B_loss = G_Badv_loss + cycle_B_loss +  id_B_loss
         
         D_A_real_decision = D_A(real_A)
         D_A_real_loss = MSE_Loss(D_A_real_decision, Variable(torch.ones(D_A_real_decision.size()).cuda()))
