@@ -34,7 +34,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':100,
+    'batch_size':5,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -45,8 +45,8 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':1e-6,    #learning rate for generator
-    'lrD':1e-6,    #learning rate for discriminator
+    'lrG':2e-5,    #learning rate for generator
+    'lrD':2e-5,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
@@ -161,17 +161,17 @@ class Generator(torch.nn.Module):
         #Reflection padding
         self.pad = torch.nn.ConstantPad1d(3,0)#torch.nn.ReflectionPad1d(3)
         #Encoder
-        self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0,batch_norm=False)
-        self.conv2 = ConvBlock(num_filter,num_filter*2,batch_norm=False)
-        self.conv3 = ConvBlock(num_filter*2,num_filter*4,batch_norm=False)
+        self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0,batch_norm=True)
+        self.conv2 = ConvBlock(num_filter,num_filter*2,batch_norm=True)
+        self.conv3 = ConvBlock(num_filter*2,num_filter*4,batch_norm=True)
         #Resnet blocks
         self.resnet_blocks = []
         for i in range(num_resnet):
             self.resnet_blocks.append(ResnetBlock(num_filter*4))
         self.resnet_blocks = torch.nn.Sequential(*self.resnet_blocks)
         #Decoder
-        self.deconv1 = DeconvBlock(num_filter*4,num_filter*2,batch_norm=False)
-        self.deconv2 = DeconvBlock(num_filter*2,num_filter,batch_norm=False)
+        self.deconv1 = DeconvBlock(num_filter*4,num_filter*2,batch_norm=True)
+        self.deconv2 = DeconvBlock(num_filter*2,num_filter,batch_norm=True)
         self.deconv3 = ConvBlock(num_filter,output_dim,kernel_size=7,stride=1,padding=0,activation='tanh',batch_norm=False)
     
     def forward(self,x):
@@ -201,9 +201,9 @@ class Discriminator(torch.nn.Module):
     def __init__(self,input_dim,num_filter,output_dim):
         super(Discriminator,self).__init__()
         conv1 = ConvBlock(input_dim,num_filter,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
-        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
-        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
-        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu',batch_norm=False)
+        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=True)
+        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=True)
+        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu',batch_norm=True)
         conv5 = ConvBlock(num_filter*8,output_dim,kernel_size=4,stride=1,padding=1,activation='no_act',batch_norm=False)
         self.conv_blocks = torch.nn.Sequential(
             conv1,
@@ -419,12 +419,12 @@ for epoch in range(params['num_epochs']):
         D_B_loss = (D_B_real_loss + D_B_fake_loss) * .5
         
         
-        #G_A_optimizer.zero_grad()
+        G_A_optimizer.zero_grad()
         G_A_loss.backward(retain_graph=True)
         G_A_optimizer.step()
         
         
-        #G_B_optimizer.zero_grad()
+        G_B_optimizer.zero_grad()
         G_B_loss.backward(retain_graph=True)
         G_B_optimizer.step()
         
@@ -438,13 +438,13 @@ for epoch in range(params['num_epochs']):
         
         # Back propagation
         
-        #D_A_optimizer.zero_grad()
+        D_A_optimizer.zero_grad()
         D_A_loss.backward()
         D_A_optimizer.step()
         
         # -------------------------- train discriminator D_B --------------------------
         
-        #D_B_optimizer.zero_grad()
+        D_B_optimizer.zero_grad()
         D_B_loss.backward()
         D_B_optimizer.step()
         
@@ -514,7 +514,7 @@ for epoch in range(params['num_epochs']):
 
 
     for i, (real_v_A, real_v_B) in enumerate(zip(vali_data_loader_A,vali_data_loader_B)):
-        print(i)
+        #print(i)
         real_v_A = real_v_A[0].to(device)
         real_v_B = real_v_B[0].to(device)
         #print(to_np(real_v_A))
@@ -550,7 +550,7 @@ for epoch in range(params['num_epochs']):
     for i, (real_te_A, real_te_B) in enumerate(zip(test_data_loader_A,test_data_loader_B)):
         real_te_A = real_te_A[0].to(device)
         real_te_B = real_te_B[0].to(device)
-        print(np.shape(to_np(real_te_A)))
+        #print(np.shape(to_np(real_te_A)))
         prediction[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(G_A(real_te_A)))
         GTS[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_te_B))
         inputs[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_te_A))
