@@ -519,7 +519,7 @@ for epoch in range(params['num_epochs']):
     G_B_avg_losses.append(G_B_avg_loss.item())
     cycle_A_avg_losses.append(cycle_A_avg_loss.item())
     cycle_B_avg_losses.append(cycle_B_avg_loss.item())
-    is_A_avg_losses.append(id_A_avg_loss.item())
+    id_A_avg_losses.append(id_A_avg_loss.item())
     id_B_avg_losses.append(id_B_avg_loss.item())
     
     # Show result for test image
