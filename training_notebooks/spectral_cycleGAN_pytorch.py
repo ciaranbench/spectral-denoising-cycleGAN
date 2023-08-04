@@ -34,7 +34,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':5,
+    'batch_size':10,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -45,8 +45,8 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':2e-5,    #learning rate for generator
-    'lrD':2e-5,    #learning rate for discriminator
+    'lrG':1e-4,    #learning rate for generator
+    'lrD':1e-4,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
@@ -201,9 +201,9 @@ class Discriminator(torch.nn.Module):
     def __init__(self,input_dim,num_filter,output_dim):
         super(Discriminator,self).__init__()
         conv1 = ConvBlock(input_dim,num_filter,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
-        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=True)
-        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=True)
-        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu',batch_norm=True)
+        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
+        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
+        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu',batch_norm=False)
         conv5 = ConvBlock(num_filter*8,output_dim,kernel_size=4,stride=1,padding=1,activation='no_act',batch_norm=False)
         self.conv_blocks = torch.nn.Sequential(
             conv1,
