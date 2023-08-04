@@ -34,7 +34,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':5,
+    'batch_size':100,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -582,7 +582,10 @@ for epoch in range(params['num_epochs']):
     
     cluster_true = cluster_true.labels_
     #cluster_pred = cluster_pred.labels_
-    valid_loss = metrics.calinski_harabasz_score(prediction_valid, cluster_pred)
+    print(np.shape(np.squeeze(to_np(real_v_A))))
+    print(np.shape(prediction_valid))
+    print(np.shape(np.squeeze(cluster_pred)))
+    valid_loss = metrics.calinski_harabasz_score(prediction_valid, np.squeeze(cluster_pred))
     valid_loss_rand = adjusted_rand_score(cluster_true,cluster_pred)
     
     np.save(path + '/valid_loss_' + str(epoch), valid_loss)
