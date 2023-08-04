@@ -390,6 +390,8 @@ G_A_avg_losses = []
 G_B_avg_losses = []
 cycle_A_avg_losses = []
 cycle_B_avg_losses = []
+id_A_avg_losses = []
+id_B_avg_losses = []
 
 # Generated image pool
 num_pool = 50
