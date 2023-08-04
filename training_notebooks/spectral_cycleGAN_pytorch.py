@@ -34,7 +34,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':100,
+    'batch_size':5,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -224,17 +224,17 @@ class Generator(torch.nn.Module):
         #Reflection padding
         self.pad = torch.nn.ReflectionPad1d(3)
         #Encoder
-        self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0)
-        self.conv2 = ConvBlock(num_filter,num_filter*2)
-        self.conv3 = ConvBlock(num_filter*2,num_filter*4)
+        self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0,batch_norm=False)
+        self.conv2 = ConvBlock(num_filter,num_filter*2,batch_norm=False)
+        self.conv3 = ConvBlock(num_filter*2,num_filter*4,batch_norm=False)
         #Resnet blocks
         self.resnet_blocks = []
         for i in range(num_resnet):
             self.resnet_blocks.append(ResnetBlock(num_filter*4))
         self.resnet_blocks = torch.nn.Sequential(*self.resnet_blocks)
         #Decoder
-        self.deconv1 = DeconvBlock(num_filter*4,num_filter*2)
-        self.deconv2 = DeconvBlock(num_filter*2,num_filter)
+        self.deconv1 = DeconvBlock(num_filter*4,num_filter*2,batch_norm=False)
+        self.deconv2 = DeconvBlock(num_filter*2,num_filter,batch_norm=False)
         self.deconv3 = ConvBlock(num_filter,output_dim,kernel_size=7,stride=1,padding=0,activation='tanh',batch_norm=False)
     
     def forward(self,x):
@@ -264,9 +264,9 @@ class Discriminator(torch.nn.Module):
     def __init__(self,input_dim,num_filter,output_dim):
         super(Discriminator,self).__init__()
         conv1 = ConvBlock(input_dim,num_filter,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
-        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu')
-        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu')
-        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu')
+        conv2 = ConvBlock(num_filter,num_filter*2,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
+        conv3 = ConvBlock(num_filter*2,num_filter*4,kernel_size=4,stride=2,padding=1,activation='lrelu',batch_norm=False)
+        conv4 = ConvBlock(num_filter*4,num_filter*8,kernel_size=4,stride=1,padding=1,activation='lrelu',batch_norm=False)
         conv5 = ConvBlock(num_filter*8,output_dim,kernel_size=4,stride=1,padding=1,activation='no_act',batch_norm=False)
         self.conv_blocks = torch.nn.Sequential(
             conv1,
@@ -376,7 +376,7 @@ D_A.normal_weight_init(mean=0.0, std=0.02)
 D_B.normal_weight_init(mean=0.0, std=0.02)
 
 
-G_optimizer = torch.optim.Adam(itertools.chain(G_A.parameters(), G_B.parameters()), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+#G_optimizer = torch.optim.Adam(itertools.chain(G_A.parameters(), G_B.parameters()), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
 G_A_optimizer = torch.optim.Adam(G_A.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
 G_B_optimizer = torch.optim.Adam(G_B.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
 D_A_optimizer = torch.optim.Adam(D_A.parameters(), lr=params['lrD'], betas=(params['beta1'], params['beta2']))
@@ -396,9 +396,9 @@ id_A_avg_losses = []
 id_B_avg_losses = []
 
 # Generated image pool
-num_pool = 5
-fake_A_pool = ImagePool(num_pool)
-fake_B_pool = ImagePool(num_pool)
+#num_pool = 5
+#fake_A_pool = ImagePool(num_pool)
+#fake_B_pool = ImagePool(num_pool)
 
 step = 0
 for epoch in range(params['num_epochs']):
@@ -439,7 +439,7 @@ for epoch in range(params['num_epochs']):
         cycle_A_loss = L1_Loss(recon_A, real_A) * params['lambdaA']
         #ID loss
         id_A = G_B(real_A)
-        id_A_loss = L1_Loss(id_A, real_A) * .5
+        id_A_loss = L1_Loss(id_A, real_A) * 5
         
         # B --> A
         fake_A = G_B(real_B)
@@ -451,41 +451,25 @@ for epoch in range(params['num_epochs']):
         cycle_B_loss = L1_Loss(recon_B, real_B) * params['lambdaB']
         ##Id Loss
         id_B = G_A(real_B)
-        id_B_loss = L1_Loss(id_B, real_B) * .5
+        id_B_loss = L1_Loss(id_B, real_B) * 5
         
         # Back propagation
-        G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
+        #G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
         #G_optimizer.zero_grad()
         #G_loss.backward()
         #G_optimizer.step()
         
         G_A_loss = G_A_loss + cycle_A_loss +  id_A_loss
-        G_A_optimizer.zero_grad()
-        G_A_loss.backward(retain_graph=True)
-        G_A_optimizer.step()
-        
         G_B_loss = G_B_loss + cycle_B_loss +  id_B_loss
-        G_B_optimizer.zero_grad()
-        G_B_loss.backward(retain_graph=True)
-        G_B_optimizer.step()
         
-        
-        # -------------------------- train discriminator D_A --------------------------
         D_A_real_decision = D_A(real_A)
         D_A_real_loss = MSE_Loss(D_A_real_decision, Variable(torch.ones(D_A_real_decision.size()).cuda()))
-        
-        #fake_A = fake_A_pool.query(fake_A)
         
         D_A_fake_decision = D_A(fake_A)
         D_A_fake_loss = MSE_Loss(D_A_fake_decision, Variable(torch.zeros(D_A_fake_decision.size()).cuda()))
         
-        # Back propagation
-        D_A_loss = (D_A_real_loss + D_A_fake_loss) * 0.5
-        D_A_optimizer.zero_grad()
-        D_A_loss.backward()
-        D_A_optimizer.step()
+        D_A_loss = (D_A_real_loss + D_A_fake_loss) * .5
         
-        # -------------------------- train discriminator D_B --------------------------
         D_B_real_decision = D_B(real_B)
         D_B_real_loss = MSE_Loss(D_B_real_decision, Variable(torch.ones(D_B_fake_decision.size()).cuda()))
         
@@ -495,8 +479,35 @@ for epoch in range(params['num_epochs']):
         D_B_fake_loss = MSE_Loss(D_B_fake_decision, Variable(torch.zeros(D_B_fake_decision.size()).cuda()))
         
         # Back propagation
-        D_B_loss = (D_B_real_loss + D_B_fake_loss) * 0.5
-        D_B_optimizer.zero_grad()
+        D_B_loss = (D_B_real_loss + D_B_fake_loss) * .5
+        
+        
+        #G_A_optimizer.zero_grad()
+        G_A_loss.backward(retain_graph=True)
+        G_A_optimizer.step()
+        
+        
+        #G_B_optimizer.zero_grad()
+        G_B_loss.backward(retain_graph=True)
+        G_B_optimizer.step()
+        
+        
+        # -------------------------- train discriminator D_A --------------------------
+        
+        
+        #fake_A = fake_A_pool.query(fake_A)
+        
+       
+        
+        # Back propagation
+        
+        #D_A_optimizer.zero_grad()
+        D_A_loss.backward()
+        D_A_optimizer.step()
+        
+        # -------------------------- train discriminator D_B --------------------------
+        
+        #D_B_optimizer.zero_grad()
         D_B_loss.backward()
         D_B_optimizer.step()
         
@@ -566,12 +577,13 @@ for epoch in range(params['num_epochs']):
 
 
     for i, (real_v_A, real_v_B) in enumerate(zip(vali_data_loader_A,vali_data_loader_B)):
+        print(i)
         real_v_A = real_v_A[0].to(device)
         real_v_B = real_v_B[0].to(device)
-        #print(real_v_A)
-        prediction_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_v_A)))
-        GTS_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_B))
-        inputs_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_A))
+        #print(to_np(real_v_A))
+        prediction_valid[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(G_A(real_v_A)))
+        GTS_valid[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_v_B))
+        inputs_valid[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_v_A))
     
     prediction_valid = np.reshape(prediction_valid,(-1,500))
     GTS_valid = np.reshape(GTS_valid,(-1,500))
@@ -582,9 +594,10 @@ for epoch in range(params['num_epochs']):
     
     cluster_true = cluster_true.labels_
     #cluster_pred = cluster_pred.labels_
-    print(np.shape(np.squeeze(to_np(real_v_A))))
-    print(np.shape(prediction_valid))
-    print(np.shape(np.squeeze(cluster_pred)))
+    #print(np.shape(np.squeeze(to_np(real_v_A))))
+    #print(np.shape(prediction_valid))
+    #print(np.shape(np.squeeze(cluster_pred)))
+    print(cluster_pred)
     valid_loss = metrics.calinski_harabasz_score(prediction_valid, np.squeeze(cluster_pred))
     valid_loss_rand = adjusted_rand_score(cluster_true,cluster_pred)
     
@@ -600,10 +613,10 @@ for epoch in range(params['num_epochs']):
     for i, (real_te_A, real_te_B) in enumerate(zip(test_data_loader_A,test_data_loader_B)):
         real_te_A = real_te_A[0].to(device)
         real_te_B = real_te_B[0].to(device)
-        #print(real_v_A)
-        prediction[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_te_A)))
-        GTS[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_B))
-        inputs[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_A))
+        print(np.shape(to_np(real_te_A)))
+        prediction[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(G_A(real_te_A)))
+        GTS[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_te_B))
+        inputs[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_te_A))
     
     prediction = np.reshape(prediction_valid,(-1,500))
     GTS = np.reshape(GTS_valid,(-1,500))
@@ -625,9 +638,9 @@ for epoch in range(params['num_epochs']):
         real_v_sup_A = real_v_sup_A[0].to(device)
         real_v_sup_B = real_v_sup_B[0].to(device)
         #print(real_v_A)
-        prediction_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_v_sup_A)))
-        GTS_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_sup_B))
-        inputs_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_sup_A))
+        prediction_valid_sup[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(G_A(real_v_sup_A)))
+        GTS_valid_sup[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_v_sup_B))
+        inputs_valid_sup[i*params['batch_size']:(i+1)*params['batch_size'],:] = np.squeeze(to_np(real_v_sup_A))
         
     
     prediction_valid_sup = np.reshape(prediction_valid_sup,(-1,500))
