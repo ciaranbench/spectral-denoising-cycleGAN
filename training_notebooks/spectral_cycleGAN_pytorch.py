@@ -34,19 +34,19 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':100,
+    'batch_size':5,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
     'fliplr':False,
     #model params
     'num_epochs':50,
-    'decay_epoch':100,
+    'decay_epoch':'',
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':0.0002,    #learning rate for generator
-    'lrD':0.0002,    #learning rate for discriminator
+    'lrG':2e-5,    #learning rate for generator
+    'lrD':2e-5,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
@@ -404,12 +404,15 @@ for epoch in range(params['num_epochs']):
     G_B_losses = []
     cycle_A_losses = []
     cycle_B_losses = []
+    id_A_losses = []
+    id_B_losses = []
+    
     
     # Learing rate decay 
-    if(epoch + 1) > params['decay_epoch']:
-        D_A_optimizer.param_groups[0]['lr'] -= params['lrD'] / (params['num_epochs'] - params['decay_epoch'])
-        D_B_optimizer.param_groups[0]['lr'] -= params['lrD'] / (params['num_epochs'] - params['decay_epoch'])
-        G_optimizer.param_groups[0]['lr'] -= params['lrG'] / (params['num_epochs'] - params['decay_epoch'])
+    #if(epoch + 1) > params['decay_epoch']:
+    #    D_A_optimizer.param_groups[0]['lr'] -= params['lrD'] / (params['num_epochs'] - params['decay_epoch'])
+    #    D_B_optimizer.param_groups[0]['lr'] -= params['lrD'] / (params['num_epochs'] - params['decay_epoch'])
+    #    G_optimizer.param_groups[0]['lr'] -= params['lrG'] / (params['num_epochs'] - params['decay_epoch'])
         
     
     # training 
@@ -430,6 +433,9 @@ for epoch in range(params['num_epochs']):
         # forward cycle loss
         recon_A = G_B(fake_B)
         cycle_A_loss = L1_Loss(recon_A, real_A) * params['lambdaA']
+        #ID loss
+        id_A = G_B(real_A)
+        id_A_loss = L1_Loss(id_A, real_A) * .5
         
         # B --> A
         fake_A = G_B(real_B)
@@ -439,9 +445,12 @@ for epoch in range(params['num_epochs']):
         # backward cycle loss
         recon_B = G_A(fake_A)
         cycle_B_loss = L1_Loss(recon_B, real_B) * params['lambdaB']
+        ##Id Loss
+        id_B = G_A(real_B)
+        id_B_loss = L1_Loss(id_B, real_B) * .5
         
         # Back propagation
-        G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss
+        G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
         G_optimizer.zero_grad()
         G_loss.backward()
         G_optimizer.step()
@@ -485,6 +494,8 @@ for epoch in range(params['num_epochs']):
         G_B_losses.append(G_B_loss.item())
         cycle_A_losses.append(cycle_A_loss.item())
         cycle_B_losses.append(cycle_B_loss.item())
+        id_A_losses.append(id_A_loss.item())
+        id_B_losses.append(id_B_loss.item())
 
         if i%100 == 0:
             print('Epoch [%d/%d], Step [%d/%d], D_A_loss: %.4f, D_B_loss: %.4f, G_A_loss: %.4f, G_B_loss: %.4f'
@@ -498,6 +509,8 @@ for epoch in range(params['num_epochs']):
     G_B_avg_loss = torch.mean(torch.FloatTensor(G_B_losses))
     cycle_A_avg_loss = torch.mean(torch.FloatTensor(cycle_A_losses))
     cycle_B_avg_loss = torch.mean(torch.FloatTensor(cycle_B_losses))
+    id_A_avg_loss = torch.mean(torch.FloatTensor(id_A_losses))
+    id_B_avg_loss = torch.mean(torch.FloatTensor(id_B_losses))
 
     # avg loss values for plot
     D_A_avg_losses.append(D_A_avg_loss.item())
@@ -506,6 +519,8 @@ for epoch in range(params['num_epochs']):
     G_B_avg_losses.append(G_B_avg_loss.item())
     cycle_A_avg_losses.append(cycle_A_avg_loss.item())
     cycle_B_avg_losses.append(cycle_B_avg_loss.item())
+    is_A_avg_losses.append(id_A_avg_loss.item())
+    id_B_avg_losses.append(id_B_avg_loss.item())
     
     # Show result for test image
     test_real_A = test_real_A_data
@@ -613,4 +628,6 @@ all_losses['G_A_avg_losses'] = G_A_avg_losses
 all_losses['G_B_avg_losses'] = G_B_avg_losses
 all_losses['cycle_A_avg_losses'] = cycle_A_avg_losses
 all_losses['cycle_B_avg_losses'] = cycle_B_avg_losses
+all_losses['id_A_avg_losses'] = id_A_avg_losses
+all_losses['id_B_avg_losses'] = id_B_avg_losses
 all_losses.to_csv('avg_losses',index=False)
