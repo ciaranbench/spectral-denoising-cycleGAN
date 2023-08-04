@@ -34,7 +34,7 @@ import os , itertools
 import matplotlib.pyplot as plt
 
 params = {
-    'batch_size':5,
+    'batch_size':100,
     'input_size':500,
     'resize_scale':'',
     'crop_size':'',
@@ -45,8 +45,8 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':2e-5,    #learning rate for generator
-    'lrD':2e-5,    #learning rate for discriminator
+    'lrG':1e-7,    #learning rate for generator
+    'lrD':1e-7,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
