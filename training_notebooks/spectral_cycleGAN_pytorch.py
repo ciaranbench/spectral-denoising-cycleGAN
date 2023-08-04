@@ -23,6 +23,9 @@ from sklearn.metrics import davies_bouldin_score
 from sklearn.metrics import silhouette_score
 from sklearn.metrics import calinski_harabasz_score
 
+import os
+import shutil
+
 from PIL import Image
 
 import os , itertools
@@ -37,11 +40,11 @@ params = {
     'crop_size':'',
     'fliplr':False,
     #model params
-    'num_epochs':20,
+    'num_epochs':50,
     'decay_epoch':100,
-    'ngf':32,   #number of generator filters
+    'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
-    'num_resnet':6, #number of resnet blocks
+    'num_resnet':9, #number of resnet blocks
     'lrG':0.0002,    #learning rate for generator
     'lrD':0.0002,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
@@ -71,7 +74,7 @@ def plot_train_result(real_image, gen_image, recon_image, epoch, save=False,  sh
 
     # save figure
     if save:
-        save_fn = 'Result_epoch_{:d}'.format(epoch+1) + '.png'
+        save_fn = 'test_outputs/Result_epoch_{:d}'.format(epoch+1) + '.png'
         plt.savefig(save_fn)
 
     if show:
@@ -319,6 +322,16 @@ clean_tr = torch.from_numpy(np.expand_dims(clean_tr,axis=1)).float().to(device)
 noisy_va = torch.from_numpy(np.expand_dims(noisy_va,axis=1)).float().to(device)
 clean_va = torch.from_numpy(np.expand_dims(clean_va,axis=1)).float().to(device)
 
+noisy_va_sup = torch.from_numpy(np.expand_dims(noisy_va_sup,axis=1)).float().to(device)
+clean_va_sup = torch.from_numpy(np.expand_dims(clean_va_sup,axis=1)).float().to(device)
+vali_sup_data_A = data.TensorDataset(noisy_va_sup)
+vali_sup_data_B = data.TensorDataset(clean_va_sup)
+vali_sup_data_loader_A = torch.utils.data.DataLoader(dataset=vali_sup_data_A, batch_size=params['batch_size'], shuffle=False)
+vali_sup_data_loader_B = torch.utils.data.DataLoader(dataset=vali_sup_data_B, batch_size=params['batch_size'], shuffle=False)
+
+noisy_te = torch.from_numpy(np.expand_dims(noisy_te,axis=1)).float().to(device)
+clean_te = torch.from_numpy(np.expand_dims(clean_te,axis=1)).float().to(device)
+
 train_data_A = data.TensorDataset(noisy_tr)
 train_data_B = data.TensorDataset(clean_tr)
 
@@ -329,8 +342,8 @@ train_data_loader_B = torch.utils.data.DataLoader(dataset=train_data_B, batch_si
 
 
 #Load test data#
-test_data_A = data.TensorDataset(noisy_va)
-test_data_B = data.TensorDataset(clean_va)
+test_data_A = data.TensorDataset(noisy_te)
+test_data_B = data.TensorDataset(clean_te)
 
 test_data_loader_A = torch.utils.data.DataLoader(dataset=test_data_A, batch_size=params['batch_size'], shuffle=False)
 test_data_loader_B = torch.utils.data.DataLoader(dataset=test_data_B, batch_size=params['batch_size'], shuffle=False)
@@ -340,6 +353,10 @@ vali_data_B = data.TensorDataset(clean_va)
 
 vali_data_loader_A = torch.utils.data.DataLoader(dataset=vali_data_A, batch_size=params['batch_size'], shuffle=False)
 vali_data_loader_B = torch.utils.data.DataLoader(dataset=vali_data_B, batch_size=params['batch_size'], shuffle=False)
+
+
+
+
 
 
 # Get specific test images
@@ -502,10 +519,14 @@ for epoch in range(params['num_epochs']):
 
     plot_train_result([test_real_A[0], test_real_B[0]], [test_fake_B, test_fake_A], [test_recon_A, test_recon_B],
                             epoch, save=True)
-    PATH = './model_G_A_' + str(epoch)
-    torch.save(G_A.state_dict(), PATH)
-    PATH = './model_G_B_' + str(epoch)
-    torch.save(G_B.state_dict(), PATH)
+
+    path = './epoch_' + str(epoch)
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    os.mkdir(path)
+
+    torch.save(G_A.state_dict(), path + '/model_G_A_' + str(epoch))
+    torch.save(G_B.state_dict(), path + '/model_G_B_' + str(epoch))
 
 
     # compute validation losses
@@ -522,7 +543,6 @@ for epoch in range(params['num_epochs']):
         prediction_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_v_A)))
         GTS_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_B))
         inputs_valid[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_A))
-        print('yes')
     
     prediction_valid = np.reshape(prediction_valid,(-1,500))
     GTS_valid = np.reshape(GTS_valid,(-1,500))
@@ -535,25 +555,48 @@ for epoch in range(params['num_epochs']):
     #cluster_pred = cluster_pred.labels_
     valid_loss = metrics.calinski_harabasz_score(prediction_valid, cluster_pred)
     valid_loss_rand = adjusted_rand_score(cluster_true,cluster_pred)
-    np.save('valid_loss_' + str(epoch), valid_loss)
-    np.save('valid_loss_rand_' + str(epoch), valid_loss_rand)
-    '''
-    # compute supervised validation loss
-    spectra_valid_sup = valid_noisy_sup
-    prediction_valid_sup = np.zeros(np.shape(spectra_valid_sup))
-    GTS_valid_sup = np.zeros(np.shape(spectra_valid_sup))
-    inputs_valid_sup = np.zeros(np.shape(spectra_valid_sup))
     
-    counter = 0
-    for i in range(200, np.shape(spectra_valid_sup)[0], 200):
-        prediction_valid_sup[i-200:i,:] = np.squeeze(self.model.gen_G(spectra_valid_sup[i-200:i]))
-        GTS_valid_sup[i-200:i,:] = valid_clean_sup[i-200:i]
-        inputs_valid_sup[i-200:i,:] = spectra_valid_sup[i-200:i]
-        counter = counter+1
-    # get remaining bit of last batch
-    prediction_valid_sup[(200*counter):] = np.squeeze(self.model.gen_G(spectra_valid_sup[(200*counter):]))
-    GTS_valid_sup[(200*counter):] = valid_clean_sup[(200*counter):]
-    inputs_valid_sup[(200*counter):] = spectra_valid_sup[(200*counter):]
+    np.save(path + '/valid_loss_' + str(epoch), valid_loss)
+    np.save(path + '/valid_loss_rand_' + str(epoch), valid_loss_rand)
+
+
+    noisy_te = np.load('data/hn_test_set.npy')
+    prediction = np.zeros(np.shape(noisy_te))
+    GTS = np.zeros(np.shape(noisy_te))
+    inputs = np.zeros(np.shape(noisy_te))
+
+    for i, (real_te_A, real_te_B) in enumerate(zip(test_data_loader_A,test_data_loader_B)):
+        real_te_A = real_te_A[0].to(device)
+        real_te_B = real_te_B[0].to(device)
+        #print(real_v_A)
+        prediction[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_te_A)))
+        GTS[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_B))
+        inputs[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_A))
+    
+    prediction = np.reshape(prediction_valid,(-1,500))
+    GTS = np.reshape(GTS_valid,(-1,500))
+    inputs = np.reshape(inputs_valid,(-1,500))
+    
+    np.save(path + '/network_denoised', prediction)
+    np.save(path + '/network_denoised_GT', GTS)
+    np.save(path + '/network_input', inputs)
+
+    
+    
+    # compute supervised validation loss
+    noisy_v_sup = np.load('data/hn_valid_set_sup.npy')
+    prediction_valid_sup = np.zeros(np.shape(noisy_v_sup))
+    GTS_valid_sup = np.zeros(np.shape(noisy_v_sup))
+    inputs_valid_sup = np.zeros(np.shape(noisy_v_sup))
+    
+    for i, (real_v_sup_A, real_v_sup_B) in enumerate(zip(vali_sup_data_loader_A,vali_sup_data_loader_B)):
+        real_v_sup_A = real_v_sup_A[0].to(device)
+        real_v_sup_B = real_v_sup_B[0].to(device)
+        #print(real_v_A)
+        prediction_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(G_A(real_v_sup_A)))
+        GTS_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_sup_B))
+        inputs_valid_sup[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_v_sup_A))
+        
     
     prediction_valid_sup = np.reshape(prediction_valid_sup,(-1,500))
     GTS_valid_sup = np.reshape(GTS_valid_sup,(-1,500))
@@ -562,7 +605,7 @@ for epoch in range(params['num_epochs']):
     valid_loss_sup = np.mean(np.mean((np.squeeze(prediction_valid_sup) - np.squeeze(GTS_valid_sup))**2,axis=1))
     
     np.save(path + '/valid_loss_sup_' + str(epoch), valid_loss_sup)
-    '''
+    
 all_losses = pd.DataFrame()
 all_losses['D_A_avg_losses'] = D_A_avg_losses
 all_losses['D_B_avg_losses'] = D_B_avg_losses
