@@ -40,7 +40,7 @@ params = {
     'crop_size':'',
     'fliplr':False,
     #model params
-    'num_epochs':50,
+    'num_epochs':100,
     'decay_epoch':'',
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
