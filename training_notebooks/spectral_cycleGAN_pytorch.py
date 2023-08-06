@@ -45,8 +45,8 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':1e-6,    #learning rate for generator
-    'lrD':1e-6,    #learning rate for discriminator
+    'lrG':4e-6,    #learning rate for generator
+    'lrD':4e-6,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
     'lambdaA':10 ,   #lambdaA for cycle loss
@@ -437,7 +437,7 @@ for epoch in range(params['num_epochs']):
         cycle_A_loss = L1_Loss(recon_A, real_A) * params['lambdaA']
         #ID loss
         id_A = G_B(real_A)
-        id_A_loss = L1_Loss(id_A, real_A) * .5
+        id_A_loss = L1_Loss(id_A, real_A) * 5
         
         # B --> A
         fake_A = G_B(real_B)
@@ -449,7 +449,7 @@ for epoch in range(params['num_epochs']):
         cycle_B_loss = L1_Loss(recon_B, real_B) * params['lambdaB']
         ##Id Loss
         id_B = G_A(real_B)
-        id_B_loss = L1_Loss(id_B, real_B) * .5
+        id_B_loss = L1_Loss(id_B, real_B) * 5
         
         # Back propagation
         G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
