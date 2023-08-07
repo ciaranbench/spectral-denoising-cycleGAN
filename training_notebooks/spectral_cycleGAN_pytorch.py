@@ -45,12 +45,12 @@ params = {
     'ngf':64,   #number of generator filters
     'ndf':64,   #number of discriminator filters
     'num_resnet':9, #number of resnet blocks
-    'lrG':1e-5,    #learning rate for generator
-    'lrD':1e-5,    #learning rate for discriminator
+    'lrG':1e-6,    #learning rate for generator
+    'lrD':1e-7,    #learning rate for discriminator
     'beta1':0.5 ,    #beta1 for Adam optimizer
     'beta2':0.999 ,  #beta2 for Adam optimizer
-    'lambdaA':200 ,   #lambdaA for cycle loss
-    'lambdaB':200  ,  #lambdaB for cycle loss
+    'lambdaA':10 ,   #lambdaA for cycle loss
+    'lambdaB':10  ,  #lambdaB for cycle loss
 }
 
 data_dir = './data'
@@ -202,7 +202,7 @@ class ResnetBlock(torch.nn.Module):
         conv2 = torch.nn.Conv1d(num_filter,num_filter,kernel_size,stride,padding)
         bn = torch.nn.InstanceNorm1d(num_filter)
         relu = torch.nn.ReLU(True)
-        pad = torch.nn.ReflectionPad1d(1)
+        pad = torch.nn.ConstantPad1d(1,0)#torch.nn.ReflectionPad1d(1)
         
         self.resnet_block = torch.nn.Sequential(
             pad,
@@ -222,7 +222,7 @@ class Generator(torch.nn.Module):
         super(Generator,self).__init__()
         
         #Reflection padding
-        self.pad = torch.nn.ReflectionPad1d(3)
+        self.pad = torch.nn.ConstantPad1d(3,0)#torch.nn.ReflectionPad1d(3)
         #Encoder
         self.conv1 = ConvBlock(input_dim,num_filter,kernel_size=7,stride=1,padding=0)
         self.conv2 = ConvBlock(num_filter,num_filter*2)
@@ -316,6 +316,7 @@ clean_va_sup = np.load('data/ln_valid_set_sup.npy')
 
 noisy_te = np.load('data/hn_test_set.npy')
 clean_te = np.load('data/ln_test_set.npy')
+#print(np.shape(np.expand_dims(noisy_tr,axis=1)))
 #add dimension to ensure tensor will be shaped as [batch, channel, length]
 noisy_tr = torch.from_numpy(np.expand_dims(noisy_tr,axis=1)).float().to(device)
 clean_tr = torch.from_numpy(np.expand_dims(clean_tr,axis=1)).float().to(device)
@@ -377,6 +378,9 @@ D_B.normal_weight_init(mean=0.0, std=0.02)
 
 
 G_optimizer = torch.optim.Adam(itertools.chain(G_A.parameters(), G_B.parameters()), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+G_A_optimizer = torch.optim.Adam(G_A.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+G_B_optimizer = torch.optim.Adam(G_B.parameters(), lr=params['lrG'], betas=(params['beta1'], params['beta2']))
+
 D_A_optimizer = torch.optim.Adam(D_A.parameters(), lr=params['lrD'], betas=(params['beta1'], params['beta2']))
 D_B_optimizer = torch.optim.Adam(D_B.parameters(), lr=params['lrD'], betas=(params['beta1'], params['beta2']))
 
@@ -424,6 +428,7 @@ for epoch in range(params['num_epochs']):
         # input image data
         real_A = real_A[0].to(device)
         real_B = real_B[0].to(device)
+        #print(np.shape((to_np(real_A))))
         #print(real_A.size())
         
         # -------------------------- train generator G --------------------------
@@ -437,7 +442,7 @@ for epoch in range(params['num_epochs']):
         cycle_A_loss = L1_Loss(recon_A, real_A) * params['lambdaA']
         #ID loss
         id_A = G_B(real_A)
-        id_A_loss = L1_Loss(id_A, real_A) * 100
+        id_A_loss = L1_Loss(id_A, real_A) * params['lambdaA'] *.5
         
         # B --> A
         fake_A = G_B(real_B)
@@ -449,13 +454,23 @@ for epoch in range(params['num_epochs']):
         cycle_B_loss = L1_Loss(recon_B, real_B) * params['lambdaB']
         ##Id Loss
         id_B = G_A(real_B)
-        id_B_loss = L1_Loss(id_B, real_B) * 100
+        id_B_loss = L1_Loss(id_B, real_B) * params['lambdaB']*.5
         
         # Back propagation
         G_loss = G_A_loss + G_B_loss + cycle_A_loss + cycle_B_loss + id_B_loss + id_A_loss
         G_optimizer.zero_grad()
         G_loss.backward(retain_graph=True)
         G_optimizer.step()
+
+        G_A_loss_tot = G_A_loss +  cycle_A_loss + id_A_loss
+        #G_A_optimizer.zero_grad()
+        #G_A_loss_tot.backward(retain_graph=True)
+        #G_A_optimizer.step()
+
+        G_B_loss_tot = G_B_loss +  cycle_B_loss + id_B_loss
+        #G_B_optimizer.zero_grad()
+        #G_B_loss_tot.backward(retain_graph=True)
+        #G_B_optimizer.step()
         
         
         # -------------------------- train discriminator D_A --------------------------
@@ -500,8 +515,8 @@ for epoch in range(params['num_epochs']):
         id_B_losses.append(id_B_loss.item())
 
         if i%100 == 0:
-            print('Epoch [%d/%d], Step [%d/%d], D_A_loss: %.4f, D_B_loss: %.4f, G_A_loss: %.4f, G_B_loss: %.4f'
-                  % (epoch+1, params['num_epochs'], i+1, len(train_data_loader_A), D_A_loss.item(), D_B_loss.item(), G_A_loss.item(), G_B_loss.item()))
+            print('Epoch [%d/%d], Step [%d/%d], D_A_loss: %.4f, D_B_loss: %.4f, G_A_loss: %.4f, G_B_loss: %.4f, cycle_A: %.4f, cycle_B: %.4f,id_A: %.4f,id_B: %.4f,'
+                  % (epoch+1, params['num_epochs'], i+1, len(train_data_loader_A), D_A_loss.item(), D_B_loss.item(), G_A_loss.item(), G_B_loss.item(), cycle_A_loss.item(), cycle_B_loss.item(),id_A_loss.item(),id_B_loss.item()))
             
         step += 1
         
