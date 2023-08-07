@@ -605,9 +605,9 @@ for epoch in range(params['num_epochs']):
         GTS[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_B))
         inputs[i*params['batch_size']:(i+1)*params['batch_size']] = np.squeeze(to_np(real_te_A))
     
-    prediction = np.reshape(prediction_valid,(-1,500))
-    GTS = np.reshape(GTS_valid,(-1,500))
-    inputs = np.reshape(inputs_valid,(-1,500))
+    prediction = np.reshape(prediction,(-1,500))
+    GTS = np.reshape(GTS,(-1,500))
+    inputs = np.reshape(inputs,(-1,500))
     
     np.save(path + '/network_denoised', prediction)
     np.save(path + '/network_denoised_GT', GTS)
