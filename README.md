@@ -11,4 +11,6 @@ The original spectral dataset adapted for this study can be found [here](https:/
 
 Training scripts were written for TensorFlow 2.12
 
-to do: pytorch implementation -> https://www.kaggle.com/code/pipiking/cyclegan-pytorch/script , https://github.com/ltq477/CycleGAN/blob/master/CycleGAN%20-%20Facial%20Gans%20ver_IV.ipynb
+to do: 
+change lambda_id
+fig typ
