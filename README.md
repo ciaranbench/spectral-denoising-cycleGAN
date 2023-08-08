@@ -14,5 +14,7 @@ Training scripts were written for TensorFlow 2.12
 A PyTorch implementation is also available, though it is not completely identical and requires different hyperparameters.
 
 to do: 
+
 change lambda_id in a
+
 fig typ title
