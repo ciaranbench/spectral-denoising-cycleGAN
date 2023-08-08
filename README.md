@@ -10,8 +10,9 @@ Training/validation/test data can be downloaded from this [Google Drive link](ht
 The original spectral dataset adapted for this study can be found [here](https://github.com/conor-horgan/DeepeR). 
 
 Training scripts were written for TensorFlow 2.12
-PyTorch implementation is also available.
+
+A PyTorch implementation is also available, thiugh it is not identical and requires different hyperparameters.
 
 to do: 
-change lambda_id
-fig typ
+change lambda_id in a
+fig typ title
