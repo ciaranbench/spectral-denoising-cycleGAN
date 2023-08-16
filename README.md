@@ -15,6 +15,4 @@ A PyTorch implementation is also available, though it is not completely identica
 
 to do: 
 
-change lambda_id in a
-
 fig typ title
