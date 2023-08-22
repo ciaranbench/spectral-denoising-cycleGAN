@@ -16,3 +16,4 @@ A PyTorch implementation is also available, though it is not completely identica
 to do: 
 
 fig typ title
+hyper
