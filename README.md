@@ -12,8 +12,3 @@ The original spectral dataset adapted for this study can be found [here](https:/
 Training scripts were written for TensorFlow 2.12
 
 A PyTorch implementation is also available, though it is not completely identical and requires different hyperparameters.
-
-to do: 
-
-fig typ title
-hyper
